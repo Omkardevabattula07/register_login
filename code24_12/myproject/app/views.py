@@ -3,13 +3,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password, check_password
 from .models import UserProfile
-# from ratelimit.decorators import ratelimit
-# from django.http import HttpResponseForbidden
+from django_ratelimit.decorators import ratelimit
+from django.http import HttpResponseForbidden
 
-# @ratelimit(key='ip', rate='5/m', method='GET', block=True)
+@ratelimit(key='ip', rate='5/m', method='GET', block=True)
 def base(request):
-    # if getattr(request, 'limited', False):
-        # return HttpResponseForbidden("Too many requests. Please try again after a minute.")
+    if getattr(request, 'limited', False):
+        return HttpResponseForbidden("Too many requests. Please try again after a minute.")
     return render(request, 'base.html')
 
 def register_view(request):
