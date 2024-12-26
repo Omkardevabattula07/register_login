@@ -3,6 +3,14 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password, check_password
 from .models import UserProfile
+# from ratelimit.decorators import ratelimit
+# from django.http import HttpResponseForbidden
+
+# @ratelimit(key='ip', rate='5/m', method='GET', block=True)
+def base(request):
+    # if getattr(request, 'limited', False):
+        # return HttpResponseForbidden("Too many requests. Please try again after a minute.")
+    return render(request, 'base.html')
 
 def register_view(request):
     if request.method == 'POST':
@@ -32,21 +40,44 @@ def register_view(request):
         return redirect('login')
     return render(request, 'register.html')
 
+# def login_view(request):
+#     if request.method == 'POST':
+#         username = request.POST.get('username')
+#         password = request.POST.get('password')
+#         security_answer = request.POST.get('security_answer')
+
+#         try:
+#             user = User.objects.get(username=username)
+#             if user.check_password(password) and check_password(security_answer, user.profile.security_answer):
+#                 login(request, user)
+#                 if user.is_superuser:
+#                     return redirect('superuser_page')
+#                 return redirect('normal_user_page')
+#             else:
+#                 return render(request, 'login.html', {'error': "Invalid credentials"})
+#         except User.DoesNotExist:
+#             return render(request, 'login.html', {'error': "User does not exist"})
+#     return render(request, 'login.html')
 def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        security_answer = request.POST.get('security_answer')
+        security_answer = request.POST.get('security_answer', '')
 
         try:
             user = User.objects.get(username=username)
-            if user.check_password(password) and check_password(security_answer, user.profile.security_answer):
-                login(request, user)
-                if user.is_superuser:
+            if user.is_superuser:  # Skip security question for superusers
+                if user.check_password(password):
+                    login(request, user)
                     return redirect('superuser_page')
-                return redirect('normal_user_page')
-            else:
-                return render(request, 'login.html', {'error': "Invalid credentials"})
+                else:
+                    return render(request, 'login.html', {'error': "Invalid credentials for superuser"})
+            else:  # For normal users
+                if user.check_password(password) and check_password(security_answer, user.profile.security_answer):
+                    login(request, user)
+                    return redirect('normal_user_page')
+                else:
+                    return render(request, 'login.html', {'error': "Invalid credentials"})
         except User.DoesNotExist:
             return render(request, 'login.html', {'error': "User does not exist"})
     return render(request, 'login.html')
